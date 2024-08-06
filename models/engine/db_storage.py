@@ -13,7 +13,7 @@ from models.state import State
 from models.user import User
 from os import getenv
 import sqlalchemy
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 classes = {"Amenity": Amenity, "City": City,
@@ -24,6 +24,8 @@ class DBStorage:
     """interaacts with the MySQL database"""
     __engine = None
     __session = None
+    classes = {"Amenity": Amenity, "City": City,
+               "Place": Place, "Review": Review, "State": State, "User": User}
 
     def __init__(self):
         """Instantiate a DBStorage object"""
@@ -74,3 +76,25 @@ class DBStorage:
     def close(self):
         """call remove() method on the private session attribute"""
         self.__session.remove()
+
+    def get(self, cls, id):
+        """retrieve an object that belongs to the class cls with id or none"""
+        Session = sessionmaker(bind=self.__engine)
+        self.__session = Session()
+        obj = self.__session.query(cls).filter(id==id).one_or_none()
+        self.__session.close()
+        return obj
+
+    def count(self, cls=None):
+        """Return the number of record of the class cls or number of all record"""
+        Session = sessionmaker(bind=self.__engine)
+        self.__session = Session()
+        if cls is not None:
+           count = self.__session.query(func.count(cls.id)).scalar()
+           self.__session.close()
+           return count
+        count = 0
+        for cls in DBStorage.classes.values():
+            count += self.__session.query(func.count(cls.id)).scalar()
+        self.__session.close()
+        return count

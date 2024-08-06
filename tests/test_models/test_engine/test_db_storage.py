@@ -18,6 +18,9 @@ import json
 import os
 import pep8
 import unittest
+from sqlalchemy.orm import sessionmaker()
+from sqlalchemy import func
+Session = sessionmaker(bind=db_storage.DBStorage.__engine)
 DBStorage = db_storage.DBStorage
 classes = {"Amenity": Amenity, "City": City, "Place": Place,
            "Review": Review, "State": State, "User": User}
@@ -66,6 +69,27 @@ test_db_storage.py'])
                              "{:s} method needs a docstring".format(func[0]))
             self.assertTrue(len(func[1].__doc__) >= 1,
                             "{:s} method needs a docstring".format(func[0]))
+    def test_get_method(self):
+        """test to retrieve a record that belong to a given class"""
+        session = Session()
+        state = State(id=5, name="Nevada")
+        session.add(state)
+        session.commit()
+        session.close()
+        storage = db_storage.DBStorage()
+        st = storage.get(cls=State, id=5)
+        self.assertTrue(st.id, 5)
+        st = storage.get(cls=State, id=2)
+        self.assertTrue(st, None)
+
+    def test_count_method(self):
+        """test the number of record for a given class"""
+        session = Session()
+        count = session.query(func.count(State)).scalar()
+        session.close()
+        storage = db_storage.DBStorage()
+        self.assertTrue(count, storage.count(cls=True))
+        self.assertTrue(count, storage.count())
 
 
 class TestFileStorage(unittest.TestCase):
